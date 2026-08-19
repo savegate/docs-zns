@@ -195,8 +195,8 @@ Phần tử trong `results` không có trường `phone`. Đối soát bằng `t
 - Tin RSA không có số điện thoại và nhà mạng trong báo cáo
 - Không tra cứu được qua `GET /api/v1/messages?phone=…`
 - Webhook DLR trả `"to": null`
-- Mỗi trường mã hoá cho ra 684 ký tự bất kể độ dài gốc. Lô 500 người nhận với 5 tham
-  số tương đương khoảng 2 MB. Khuyến nghị chia lô 100–200.
+- Mỗi trường mã hoá cho ra 684 ký tự bất kể độ dài gốc. Batch 500 người nhận với 5 tham
+  số tương đương khoảng 2 MB. Khuyến nghị chia batch 100–200.
 
 Chỉ hệ thống của bạn lưu giữ liên kết giữa `tracking_id` và khách hàng.
 

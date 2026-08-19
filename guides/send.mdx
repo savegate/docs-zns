@@ -1,6 +1,6 @@
 ---
 title: "Gửi tin"
-description: "Gửi một tin hoặc gửi lô"
+description: "Gửi một tin hoặc gửi batch"
 ---
 
 Mọi endpoint gửi trả `202 Accepted` khi tin vào hàng đợi. Mã này xác nhận tiếp nhận,
@@ -136,10 +136,10 @@ if (res.statusCode() != 202) {
 
 Lưu `msg_id` để đối soát.
 
-## Gửi lô
+## Gửi batch
 
 `POST /api/v1/messages/batch` — tối đa **500 người nhận** mỗi request. `send_at` và
-`mode` áp dụng cho toàn lô.
+`mode` áp dụng cho toàn batch.
 
 ```json Phản hồi
 {
@@ -170,10 +170,10 @@ foreach ($res['results'] as $r) {
 }
 ```
 
-AdFlex kiểm tra hạn mức tài khoản cho toàn lô trước khi xếp hàng. Vượt hạn mức trả
+AdFlex kiểm tra hạn mức tài khoản cho toàn batch trước khi xếp hàng. Vượt hạn mức trả
 `402` và không tin nào được gửi.
 
-Khuyến nghị chia lô 100–200 người nhận để giảm chi phí thử lại khi lỗi mạng.
+Khuyến nghị chia batch 100–200 người nhận để giảm chi phí thử lại khi lỗi mạng.
 
 ## Bảo mật số điện thoại
 

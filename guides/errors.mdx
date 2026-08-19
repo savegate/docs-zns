@@ -39,7 +39,7 @@ sung mỗi 5 phút cho các tin `sent` trong 24 giờ gần nhất.
 |---|---|---|
 | `400` | Body sai, thiếu trường, `tracking_id` không hợp lệ, vượt 500 người nhận, hoặc vượt hạn mức tài khoản (`/send`) | Sửa request, hoặc liên hệ AdFlex |
 | `401` | Thiếu key, key sai hoặc đã thu hồi | Kiểm tra cấu hình |
-| `402` | Vượt hạn mức tài khoản cho toàn lô (`/batch`, `/rsa`) | Liên hệ AdFlex tăng hạn mức |
+| `402` | Vượt hạn mức tài khoản cho toàn batch (`/batch`, `/rsa`) | Liên hệ AdFlex tăng hạn mức |
 | `403` | Thiếu scope hoặc workspace tạm dừng | Liên hệ AdFlex |
 | `404` | Template không thuộc workspace, hoặc `msg_id` không tồn tại | Kiểm tra tham số |
 | `409` | Tin cần huỷ không còn ở trạng thái `queued` | Không xử lý được |

@@ -3,8 +3,8 @@ title: "Đăng ký template"
 description: "Tạo mẫu tin với Zalo và đưa về hệ thống AdFlex"
 ---
 
-Template do **bạn đăng ký trực tiếp với Zalo** và Zalo kiểm duyệt. AdFlex không đăng
-ký hộ và không sửa được nội dung template.
+Template do **bạn đăng ký trực tiếp với Zalo** và Zalo kiểm duyệt. AdFlex đồng bộ
+template bạn đã khai báo trên Zalo về hệ thống, sẵn sàng cho việc gửi tin.
 
 ```mermaid
 flowchart LR
@@ -35,14 +35,15 @@ theo nghiệp vụ và giữ nguyên — đổi tên nghĩa là phải sửa c�
 </Note>
 
 Mỗi loại component có ràng buộc riêng về độ dài, số lượng parameter và điều kiện bắt
-buộc. Chi tiết xem tài liệu Zalo <a href="https://developers.zalo.me/docs/zalo-notification-service" target="_blank" rel="noopener"><Icon icon="arrow-up-right-from-square" size={13} /></a>.
+buộc. Chi tiết xem tài liệu Zalo <a href="https://developers.zalo.me/docs" target="_blank" rel="noopener"><Icon icon="arrow-up-right-from-square" size={13} /></a>.
 
 ## Các bước
 
 <Steps>
   <Step title="Soạn template trên Zalo">
     Đăng nhập tài khoản Zalo Business của bạn và tạo mẫu tin cho Official Account.
-    Khai báo đầy đủ components và parameters.
+    Khai báo đầy đủ components và parameters. Hướng dẫn chi tiết xem tài liệu Zalo
+    <a href="https://developers.zalo.me/docs" target="_blank" rel="noopener"><Icon icon="arrow-up-right-from-square" size={13} /></a>.
   </Step>
   <Step title="Chờ Zalo kiểm duyệt">
     Template ở trạng thái `PENDING_REVIEW`. Zalo duyệt hoặc từ chối kèm lý do.
@@ -76,5 +77,5 @@ mãi sẽ chịu hạn mức thấp hơn nhiều.
 
 - Trạng thái template có thể đổi bất kỳ lúc nào do Zalo quyết định. AdFlex chỉ phản
   ánh bản đồng bộ gần nhất — xem [Template và OA](/guides/templates).
-- Sửa nội dung template thực hiện phía Zalo, rồi đồng bộ lại.
+- Nội dung template chỉnh sửa trên Zalo, sau đó đồng bộ lại để AdFlex nhận bản mới.
 - Chỉ template `ENABLE` mới gửi được. Xem [mã lỗi](/guides/errors) nếu bị từ chối.

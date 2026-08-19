@@ -1,6 +1,6 @@
 ---
 title: "Hạn mức gửi tin"
-description: "Hai trần giới hạn số tin gửi được, và cách đối chiếu trước khi gửi lô"
+description: "Hai trần giới hạn số tin gửi được, và cách đối chiếu trước khi gửi batch"
 ---
 
 Có **hai trần** độc lập. Vượt trần nào cũng dừng việc gửi, nhưng cách xử lý khác nhau.
@@ -61,26 +61,26 @@ Một OA lỗi không làm hỏng cả phản hồi. Trường `error` xuất hi
 còn lại vẫn có số dùng được.
 </Note>
 
-## Đối chiếu trước khi gửi lô
+## Đối chiếu trước khi gửi batch
 
-Gửi lô lớn nên tra hạn mức trước và chia lô cho vừa phần còn lại. Không tra thì lô
+Gửi batch lớn nên tra hạn mức trước và chia batch cho vừa phần còn lại. Không tra thì batch
 có thể đâm vào trần giữa chừng: những tin đầu đi được, phần sau trả lỗi.
 
 ```php
-function guiLoTheoHanMuc(string $oaId, array $nguoiNhan, string $templateId): void {
-    $q = getJson("/api/v1/quota?oa_id=" . urlencode($oaId));
-    $conLai = $q['quotas'][0]['remaining'] ?? 0;
+function sendBatchWithinQuota(string $oaId, array $recipients, string $templateId): void {
+    $quota     = getJson("/api/v1/quota?oa_id=" . urlencode($oaId));
+    $remaining = $quota['quotas'][0]['remaining'] ?? 0;
 
-    if ($conLai < count($nguoiNhan)) {
-        // Gửi phần vừa hạn mức, phần còn lại để sang ngày
-        $nguoiNhan = array_slice($nguoiNhan, 0, $conLai);
-        logInfo("Hạn mức còn $conLai, hoãn phần dư sang ngày mai");
+    if ($remaining < count($recipients)) {
+        // Gửi phần vừa hạn mức, phần dư để sang ngày hôm sau
+        $recipients = array_slice($recipients, 0, $remaining);
+        logInfo("Hạn mức còn $remaining, hoãn phần dư sang ngày mai");
     }
 
-    foreach (array_chunk($nguoiNhan, 200) as $lo) {
+    foreach (array_chunk($recipients, 200) as $batch) {
         postJson('/api/v1/messages/batch', [
             'template_id' => $templateId,
-            'recipients'  => $lo,
+            'recipients'  => $batch,
         ]);
     }
 }
