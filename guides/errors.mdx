@@ -26,9 +26,9 @@ sung mỗi 5 phút cho các tin `sent` trong 24 giờ gần nhất.
 
 | Mã | Nguyên nhân | Xử lý |
 |---|---|---|
-| `400` | Body sai, thiếu trường, `tracking_id` không hợp lệ, vượt 500 người nhận, hoặc thiếu số dư (`/send`) | Sửa request |
+| `400` | Body sai, thiếu trường, `tracking_id` không hợp lệ, vượt 500 người nhận, hoặc ví workspace không đủ (`/send`) | Sửa request hoặc nạp ví |
 | `401` | Thiếu key, key sai hoặc đã thu hồi | Kiểm tra cấu hình |
-| `402` | Thiếu số dư cho toàn lô (`/batch`, `/rsa`) | Nạp ví |
+| `402` | Ví workspace không đủ cho toàn lô (`/batch`, `/rsa`) | Nạp ví workspace |
 | `403` | Thiếu scope hoặc workspace tạm dừng | Liên hệ AdFlex |
 | `404` | Template không thuộc workspace, hoặc `msg_id` không tồn tại | Kiểm tra tham số |
 | `409` | Tin cần huỷ không còn ở trạng thái `queued` | Không xử lý được |
@@ -66,22 +66,58 @@ function findByTrackingId(string $trackingId): ?array {
 }
 ```
 
+## Hai loại ví — đừng nhầm
+
+| | Ví workspace | Ví ZBS |
+|---|---|---|
+| Của ai | Của bạn, tại AdFlex | Của AdFlex, tại Zalo |
+| Bạn nạp được | Có | Không, và không cần |
+| Liên quan mã lỗi | `400`, `402` | `-137`, `-115` |
+
+Tin ZNS gửi qua ứng dụng Zalo của AdFlex và tính vào ví ZBS của AdFlex, vốn đối soát
+trả sau với Zalo. Bạn chỉ làm việc với ví workspace.
+
+<Note>
+Gặp `-137` hoặc `-115` thì **không phải do bạn hết tiền**. Đó là dấu hiệu Official
+Account chưa được nối đúng vào tài khoản ZBS của AdFlex — một bước trong quá trình
+kết nối OA. Liên hệ AdFlex, không cần nạp gì thêm.
+</Note>
+
 ## Mã lỗi Zalo
 
 Trả về trong trường `error_code` của tin. Trường `error_reason` chứa diễn giải tiếng
 Việt, dùng được trực tiếp để hiển thị.
 
-| Mã | Ý nghĩa | Bên xử lý | Gửi lại |
-|---|---|---|---|
-| `-137` | Trừ ví ZBS thất bại | Chủ OA | Sau khi nạp ví |
-| `-115` | Hết số dư ví ZBS | Chủ OA | Sau khi nạp ví |
-| `-118` | Tài khoản Zalo không tồn tại hoặc vô hiệu | Đối tác | Không |
-| `-108` | Số điện thoại không hợp lệ | Đối tác | Không |
-| `-1122` | Thiếu tham số bắt buộc | Đối tác | Sau khi sửa |
-| `-1121` | Tham số vượt độ dài tối đa | Đối tác | Sau khi sửa |
-| `-117` | OA chưa có quyền dùng template | AdFlex | Không |
-| `-127` | Dev mode chỉ gửi tới admin OA | AdFlex | Không |
-| `-110` | Zalo phiên bản cũ | — | Không |
+### Lỗi do dữ liệu của bạn
+
+Sửa nguồn dữ liệu rồi gửi lại. Gửi lại nguyên trạng sẽ hỏng y như cũ.
+
+| Mã | Ý nghĩa | Cách xử lý |
+|---|---|---|
+| `-108` | Số điện thoại không hợp lệ | Chuẩn hoá và kiểm tra định dạng trước khi gửi |
+| `-118` | Tài khoản Zalo không tồn tại hoặc vô hiệu | Số nhận chưa có tài khoản Zalo. Không gửi lại được |
+| `-1122` | Thiếu tham số bắt buộc | Bổ sung tham số còn thiếu vào `template_data` |
+| `-1121` | Tham số vượt độ dài tối đa | Cắt cho vừa `max_length` của template |
+| `-1124` | Sai định dạng tham số | Đối chiếu kiểu dữ liệu trong `GET /api/v1/templates` |
+
+### Lỗi cấu hình phía AdFlex
+
+Liên hệ AdFlex. Bạn không tự xử lý được, và cũng không phải nạp thêm tiền.
+
+| Mã | Ý nghĩa |
+|---|---|
+| `-137` | Trừ ví ZBS thất bại — OA chưa nối đúng tài khoản ZBS của AdFlex |
+| `-115` | Hết số dư ví ZBS |
+| `-117` | OA chưa có quyền dùng template này |
+| `-127` | Ứng dụng đang ở chế độ thử nghiệm, chỉ gửi được tới quản trị viên OA |
+| `-120` | OA chưa được cấp quyền cho tính năng này |
+
+### Ngoài tầm kiểm soát
+
+| Mã | Ý nghĩa |
+|---|---|
+| `-110` | Người nhận dùng phiên bản Zalo quá cũ |
+| `-114` | Tài khoản người nhận không hoạt động |
 
 AdFlex tự thử lại 4 lần với lỗi tạm thời trước khi đánh dấu `failed`. Tin ở trạng
 thái `failed` đã hết khả năng xử lý tự động.
