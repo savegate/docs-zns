@@ -5,10 +5,21 @@ description: "Vòng đời tin, mã lỗi HTTP và mã lỗi Zalo"
 
 ## Vòng đời tin
 
-```
-queued → sending → sent → delivered
-                     ↓
-                   failed
+```mermaid
+stateDiagram-v2
+    [*] --> queued: API nhận request
+    queued --> sending: Worker lấy khỏi hàng đợi
+    sending --> sent: Zalo tiếp nhận
+    sent --> delivered: Zalo xác nhận đã giao
+    queued --> [*]: Huỷ tin
+    queued --> failed
+    sending --> failed
+    sent --> failed
+    delivered --> [*]
+    failed --> [*]
+    note right of sent
+        Chưa chắc người nhận đã nhận được
+    end note
 ```
 
 | Trạng thái | Ý nghĩa |
@@ -26,9 +37,9 @@ sung mỗi 5 phút cho các tin `sent` trong 24 giờ gần nhất.
 
 | Mã | Nguyên nhân | Xử lý |
 |---|---|---|
-| `400` | Body sai, thiếu trường, `tracking_id` không hợp lệ, vượt 500 người nhận, hoặc ví workspace không đủ (`/send`) | Sửa request hoặc nạp ví |
+| `400` | Body sai, thiếu trường, `tracking_id` không hợp lệ, vượt 500 người nhận, hoặc vượt hạn mức tài khoản (`/send`) | Sửa request, hoặc liên hệ AdFlex |
 | `401` | Thiếu key, key sai hoặc đã thu hồi | Kiểm tra cấu hình |
-| `402` | Ví workspace không đủ cho toàn lô (`/batch`, `/rsa`) | Nạp ví workspace |
+| `402` | Vượt hạn mức tài khoản cho toàn lô (`/batch`, `/rsa`) | Liên hệ AdFlex tăng hạn mức |
 | `403` | Thiếu scope hoặc workspace tạm dừng | Liên hệ AdFlex |
 | `404` | Template không thuộc workspace, hoặc `msg_id` không tồn tại | Kiểm tra tham số |
 | `409` | Tin cần huỷ không còn ở trạng thái `queued` | Không xử lý được |
@@ -66,21 +77,27 @@ function findByTrackingId(string $trackingId): ?array {
 }
 ```
 
-## Hai loại ví — đừng nhầm
+## Chi phí và hạn mức
 
-| | Ví workspace | Ví ZBS |
-|---|---|---|
-| Của ai | Của bạn, tại AdFlex | Của AdFlex, tại Zalo |
-| Bạn nạp được | Có | Không, và không cần |
-| Liên quan mã lỗi | `400`, `402` | `-137`, `-115` |
+```mermaid
+flowchart LR
+    DT[Hệ thống của bạn] -->|gửi tin| AF[AdFlex]
+    AF -->|đối chiếu hạn mức<br/>tài khoản| AF
+    AF -->|chuyển tin| ZL[Zalo]
+    ZL -->|tính phí vào<br/>ví ZBS của AdFlex| ZBS[(Ví ZBS<br/>AdFlex)]
+    ZBS -.->|đối soát trả sau| ZL
+```
 
-Tin ZNS gửi qua ứng dụng Zalo của AdFlex và tính vào ví ZBS của AdFlex, vốn đối soát
-trả sau với Zalo. Bạn chỉ làm việc với ví workspace.
+Tin ZNS gửi qua ứng dụng Zalo của AdFlex và tính vào ví ZBS của AdFlex. Ví đó đối
+soát trả sau với Zalo, nên **bạn không phải nạp tiền vào đâu cả**.
+
+Thứ duy nhất liên quan tới bạn là **hạn mức tài khoản** — mức chi AdFlex cấp cho
+workspace. Vượt hạn mức thì API trả `400` hoặc `402` kèm thông báo liên hệ AdFlex.
 
 <Note>
-Gặp `-137` hoặc `-115` thì **không phải do bạn hết tiền**. Đó là dấu hiệu Official
-Account chưa được nối đúng vào tài khoản ZBS của AdFlex — một bước trong quá trình
-kết nối OA. Liên hệ AdFlex, không cần nạp gì thêm.
+Mã `-137` và `-115` **không phải do bạn hết tiền**. Đó là dấu hiệu Official Account
+chưa được nối đúng vào tài khoản ZBS của AdFlex — một bước trong quá trình kết nối
+OA. Liên hệ AdFlex.
 </Note>
 
 ## Mã lỗi Zalo

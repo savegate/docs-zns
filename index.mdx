@@ -12,27 +12,41 @@ theo chuẩn REST, trao đổi dữ liệu JSON, xác thực bằng API key.
 https://business.adflex.vn
 ```
 
+## Kiến trúc
+
+```mermaid
+flowchart LR
+    KH[Người dùng cuối] --> DT[Hệ thống của bạn]
+    DT -->|REST API + API key| AF[AdFlex]
+    AF -->|Ứng dụng Zalo của AdFlex| ZL[Zalo]
+    ZL -->|Tin ZNS| NG[Người nhận]
+    AF -.->|Webhook DLR| DT
+```
+
+Bạn chỉ làm việc với AdFlex. Việc gọi Zalo, quản lý token của Official Account và
+đối soát chi phí do AdFlex đảm nhiệm.
+
 ## Điều kiện sử dụng
 
 | Yêu cầu | Nơi thiết lập |
 |---|---|
-| Official Account đã kết nối | Console → Official Account |
-| Template ở trạng thái `ENABLE` | Console → Template |
-| Ví workspace còn số dư | Console → Tổng quan |
-| API key | Console → Cài đặt → API Keys |
+| Official Account đã kết nối | [Console → Official Account](https://business.adflex.vn/console/oa) |
+| Template ở trạng thái `ENABLE` | [Console → Template](https://business.adflex.vn/console/templates) |
+| API key | [Console → Cài đặt → API Keys](https://business.adflex.vn/console/settings/api-keys) |
 
 <Warning>
 API vận hành ở chế độ production. Không có môi trường sandbox. Mỗi request thành
-công tạo một tin thật và trừ phí từ ví workspace theo giá template.
+công tạo một tin thật tới số thật.
 
 Để kiểm thử nội dung template không mất phí, dùng chức năng **Gửi thử** trong
-Console → Template. Chức năng này chỉ gửi tới số quản trị viên của OA.
+[Console → Template](https://business.adflex.vn/console/templates). Chức năng này
+chỉ gửi tới số quản trị viên của OA.
 </Warning>
 
 ## Luồng tích hợp
 
 <CardGroup cols={2}>
-  <Card title="1. Lấy template" icon="list">
+  <Card title="1. Lấy template" icon="list" href="/guides/templates">
     `GET /api/v1/templates` trả về `template_id` và danh sách tham số.
   </Card>
   <Card title="2. Chuẩn hoá dữ liệu" icon="filter" href="/guides/prepare-data">

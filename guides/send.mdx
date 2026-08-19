@@ -6,6 +6,29 @@ description: "Gửi một tin hoặc gửi lô"
 Mọi endpoint gửi trả `202 Accepted` khi tin vào hàng đợi. Mã này xác nhận tiếp nhận,
 không xác nhận đã gửi tới người nhận.
 
+## Vòng đời một request
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant DT as Hệ thống của bạn
+    participant AF as AdFlex
+    participant ZL as Zalo
+    participant NG as Người nhận
+
+    DT->>AF: POST /api/v1/messages/send
+    AF-->>DT: 202 · status = queued
+    note over DT: Đã tiếp nhận vào hàng đợi.<br/>CHƯA gửi tới người nhận.
+    AF->>ZL: Chuyển tin (tối đa 8 tin/giây)
+    ZL-->>AF: Tiếp nhận · status = sent
+    ZL->>NG: Tin ZNS
+    ZL-->>AF: Xác nhận giao · status = delivered
+    AF->>DT: Webhook DLR
+```
+
+Phản hồi `202` xảy ra ở bước 2, trước khi AdFlex gọi Zalo. Kết quả thật đến ở bước
+6 và 7.
+
 ## Gửi một tin
 
 `POST /api/v1/messages/send` — dùng cho OTP và tin giao dịch theo sự kiện.
@@ -147,8 +170,8 @@ foreach ($res['results'] as $r) {
 }
 ```
 
-AdFlex kiểm tra số dư ví cho toàn lô trước khi xếp hàng. Không đủ số dư trả `402` và
-không tin nào được gửi.
+AdFlex kiểm tra hạn mức tài khoản cho toàn lô trước khi xếp hàng. Vượt hạn mức trả
+`402` và không tin nào được gửi.
 
 Khuyến nghị chia lô 100–200 người nhận để giảm chi phí thử lại khi lỗi mạng.
 
@@ -160,4 +183,4 @@ Khuyến nghị chia lô 100–200 người nhận để giảm chi phí thử l
 | `hashphone` | `/send` · `/batch` | Có | SHA-256 của số |
 | RSA | [`/messages/rsa`](/guides/rsa) | Không | Ciphertext |
 
-Không truyền `mode` thì áp dụng mặc định của OA, cấu hình trong Console.
+Không truyền `mode` thì áp dụng mặc định của OA, cấu hình tại [Console → Official Account](https://business.adflex.vn/console/oa).

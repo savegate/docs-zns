@@ -57,10 +57,24 @@ curl -H "Authorization: Bearer $ADFLEX_API_KEY" \
 | `params` | Danh sách tham số, xem bên dưới |
 
 <Note>
-Endpoint không trả về giá tin. Chi phí xem trong Console → Template.
+Endpoint không trả về giá tin. Chi phí xem tại [Console → Template](https://business.adflex.vn/console/templates).
 </Note>
 
 ### Trạng thái template
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING_REVIEW: AdFlex đăng ký template
+    PENDING_REVIEW --> ENABLE: Zalo duyệt
+    PENDING_REVIEW --> REJECT: Zalo từ chối
+    REJECT --> PENDING_REVIEW: Chỉnh sửa và gửi lại
+    ENABLE --> DISABLE: Bị vô hiệu
+    DISABLE --> ENABLE: Kích hoạt lại
+    ENABLE --> DELETE: Xoá
+    note right of ENABLE
+        Chỉ trạng thái này gửi được
+    end note
+```
 
 | Giá trị | Ý nghĩa | Gửi được |
 |---|---|---|
