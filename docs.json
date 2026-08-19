@@ -1,0 +1,85 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "AdFlex ZNS API",
+  "description": "Tài liệu tích hợp API gửi tin Zalo ZNS cho đối tác",
+  "logo": {
+    "light": "/logo/wordmark-light.svg",
+    "dark": "/logo/wordmark-dark.svg",
+    "href": "https://business.adflex.vn"
+  },
+  "favicon": "/logo/mark.png",
+  "colors": {
+    "primary": "#4F46E5",
+    "light": "#818CF8",
+    "dark": "#4338CA"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Hướng dẫn",
+        "groups": [
+          {
+            "group": "Bắt đầu",
+            "pages": [
+              "index",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Template",
+            "pages": [
+              "guides/templates"
+            ]
+          },
+          {
+            "group": "Gửi tin",
+            "pages": [
+              "guides/prepare-data",
+              "guides/send",
+              "guides/schedule",
+              "guides/rsa"
+            ]
+          },
+          {
+            "group": "Theo dõi kết quả",
+            "pages": [
+              "guides/messages",
+              "guides/webhooks",
+              "guides/errors"
+            ]
+          },
+          {
+            "group": "Tham chiếu",
+            "pages": [
+              "guides/end-to-end",
+              "guides/limits"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "openapi": "https://business.adflex.vn/openapi.json"
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Console",
+        "href": "https://business.adflex.vn/console"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Lấy API key",
+      "href": "https://business.adflex.vn/console/settings/api-keys"
+    }
+  },
+  "footer": {
+    "socials": {
+      "website": "https://business.adflex.vn"
+    }
+  }
+}

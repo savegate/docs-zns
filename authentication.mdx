@@ -1,0 +1,54 @@
+---
+title: "Xác thực"
+description: "API key và phạm vi quyền"
+---
+
+Mọi endpoint yêu cầu API key.
+
+## Truyền API key
+
+Dùng một trong hai header:
+
+```http
+Authorization: Bearer ak_live_xxxxxxxxxxxxxxxxxxxx
+```
+
+```http
+X-API-Key: ak_live_xxxxxxxxxxxxxxxxxxxx
+```
+
+## Tạo API key
+
+Console → **Cài đặt → API Keys → Tạo key**.
+
+<Warning>
+Giá trị key chỉ hiển thị một lần khi tạo. AdFlex lưu bản băm và không thể cung cấp
+lại. Trường hợp mất key, thu hồi key cũ và tạo key mới.
+</Warning>
+
+## Phạm vi quyền
+
+| Scope | Quyền |
+|---|---|
+| `messages:send` | Gửi, đặt lịch, huỷ tin |
+| `messages:read` | Tra trạng thái, liệt kê tin |
+| `templates:read` | Liệt kê template và OA |
+
+`messages:send` bao hàm `messages:read` và `templates:read`. Key tạo từ Console có
+đủ ba scope.
+
+## Khuôn dạng lỗi
+
+```json
+{
+  "error": {
+    "code": 401,
+    "message": "API key không hợp lệ hoặc đã bị thu hồi"
+  }
+}
+```
+
+## Bảo mật
+
+API key có quyền chi tiêu ví workspace. Lưu key ở biến môi trường phía máy chủ.
+Không nhúng key vào ứng dụng di động hoặc mã JavaScript chạy trên trình duyệt.

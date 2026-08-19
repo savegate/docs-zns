@@ -1,0 +1,133 @@
+---
+title: "Webhook DLR"
+description: "Nhận báo cáo giao tin"
+---
+
+Cấu hình URL nhận báo cáo tại cột **Webhook DLR** của API key trong Console. AdFlex
+gửi một request khi tin được giao thành công.
+
+```http
+POST https://your-endpoint/dlr
+X-Zgateway-Signature: <hex HMAC-SHA256(rawBody, api_key)>
+Content-Type: application/json
+
+{
+  "message_id":    "m_a1b2c3d4e5f6g7h8",
+  "client_req_id": "otp-login-8842",
+  "from":          "1234567890123456789",
+  "to":            "84912345678",
+  "status":        "SUCCESS",
+  "delivered_at":  "2026-08-19T02:35:02.104Z",
+  "tracking_id":   "9f8e7d6c5b4a39281706"
+}
+```
+
+| Trường | Mô tả |
+|---|---|
+| `message_id` | `msg_id` AdFlex trả khi gửi |
+| `client_req_id` | `tracking_id` của bạn — dùng để đối soát |
+| `from` | OA ID đã gửi |
+| `to` | Số nhận. `null` với tin RSA |
+| `tracking_id` | Mã tin phía Zalo |
+
+## Xác thực chữ ký
+
+Tính `hmac_sha256(rawBody, api_key)` trên body thô, so sánh với header
+`X-Zgateway-Signature` bằng phép so sánh timing-safe.
+
+<Warning>
+Chữ ký tính trên chuỗi byte nguyên bản của request. Parse JSON rồi serialize lại để
+tính HMAC sẽ cho kết quả sai do khác thứ tự khoá và khoảng trắng.
+</Warning>
+
+<CodeGroup>
+```php PHP
+$raw = file_get_contents('php://input');
+$sig = $_SERVER['HTTP_X_ZGATEWAY_SIGNATURE'] ?? '';
+
+$expected = hash_hmac('sha256', $raw, getenv('ADFLEX_API_KEY'));
+if (!hash_equals($expected, $sig)) {
+    http_response_code(401);
+    exit;
+}
+
+$dlr = json_decode($raw, true);
+markDelivered($dlr['client_req_id'], $dlr['delivered_at']);
+
+http_response_code(200);
+echo 'ok';
+```
+
+```javascript Node.js (Express)
+import crypto from 'crypto';
+import express from 'express';
+
+const app = express();
+
+// express.raw() giữ body thô, bắt buộc để tính chữ ký
+app.post('/dlr', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.get('X-Zgateway-Signature') ?? '';
+  const expected = crypto
+    .createHmac('sha256', process.env.ADFLEX_API_KEY)
+    .update(req.body)
+    .digest('hex');
+
+  // timingSafeEqual ném lỗi khi độ dài khác nhau
+  const ok =
+    sig.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+  if (!ok) return res.sendStatus(401);
+
+  const dlr = JSON.parse(req.body.toString('utf8'));
+  markDelivered(dlr.client_req_id, dlr.delivered_at);
+  res.sendStatus(200);
+});
+```
+
+```java Java (Spring Boot)
+@PostMapping(value = "/dlr", consumes = MediaType.APPLICATION_JSON_VALUE)
+public ResponseEntity<String> dlr(
+        @RequestBody byte[] rawBody,
+        @RequestHeader("X-Zgateway-Signature") String sig) throws Exception {
+
+    Mac mac = Mac.getInstance("HmacSHA256");
+    mac.init(new SecretKeySpec(
+            System.getenv("ADFLEX_API_KEY").getBytes(StandardCharsets.UTF_8),
+            "HmacSHA256"));
+    String expected = HexFormat.of().formatHex(mac.doFinal(rawBody));
+
+    if (!MessageDigest.isEqual(
+            expected.getBytes(StandardCharsets.UTF_8),
+            sig.getBytes(StandardCharsets.UTF_8))) {
+        return ResponseEntity.status(401).build();
+    }
+
+    Dlr dlr = objectMapper.readValue(rawBody, Dlr.class);
+    markDelivered(dlr.clientReqId(), dlr.deliveredAt());
+    return ResponseEntity.ok("ok");
+}
+```
+</CodeGroup>
+
+## Quy tắc
+
+| Hạng mục | Giá trị |
+|---|---|
+| Thời gian phản hồi | `2xx` trong 30 giây |
+| Số lần thử lại | 5 lần: `1s → 5s → 30s → 2m → 10m` |
+| Điều kiện kích hoạt | Chỉ khi tin `delivered` |
+
+<Warning>
+Webhook không được gửi cho tin thất bại. Hệ thống chỉ dựa vào webhook sẽ không phát
+hiện được tin lỗi. Bổ sung tác vụ định kỳ tra cứu qua `GET /api/v1/messages`.
+</Warning>
+
+Xử lý webhook nên idempotent theo `message_id` để chịu được trường hợp nhận trùng.
+
+```bash Đối soát định kỳ
+curl -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  "https://business.adflex.vn/api/v1/messages?status=failed&from=2026-08-19T01:00:00Z"
+
+curl -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  "https://business.adflex.vn/api/v1/messages?tracking_id=otp-login-8842"
+```

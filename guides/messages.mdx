@@ -1,0 +1,136 @@
+---
+title: "Tra cứu tin"
+description: "Trạng thái một tin, liệt kê có lọc, và huỷ tin chưa gửi"
+---
+
+## Trạng thái một tin
+
+`GET /api/v1/messages/{msg_id}` · scope `messages:read`
+
+```bash
+curl -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  https://business.adflex.vn/api/v1/messages/m_a1b2c3d4e5f6g7h8
+```
+
+```json
+{
+  "msg_id": "m_a1b2c3d4e5f6g7h8",
+  "tracking_id": "otp-login-8842",
+  "status": "delivered",
+  "phone": "84912345678",
+  "carrier": "viettel",
+  "source": "api",
+  "template_id": "123456",
+  "oa_id": "1234567890123456789",
+  "zalo_msg_id": "9f8e7d6c5b4a39281706",
+  "error_code": null,
+  "error_message": null,
+  "error_reason": null,
+  "scheduled_at": null,
+  "sent_at": "2026-08-19T02:34:54.860Z",
+  "delivered_at": "2026-08-19T02:35:02.104Z",
+  "failed_at": null,
+  "created_at": "2026-08-19T02:34:54.923Z"
+}
+```
+
+| Trường | Mô tả |
+|---|---|
+| `msg_id` | Mã tin do AdFlex sinh |
+| `tracking_id` | Mã đối soát của bạn |
+| `status` | Xem [Trạng thái và mã lỗi](/guides/errors) |
+| `phone` | Số nhận đã chuẩn hoá. `null` với tin RSA |
+| `carrier` | Nhà mạng nhận diện được. `null` với tin RSA |
+| `source` | `api` với tin gửi qua API, `campaign` với tin gửi từ Console |
+| `template_id` | Template đã dùng |
+| `oa_id` | OA đã gửi |
+| `zalo_msg_id` | Mã tin phía Zalo |
+| `error_code` | Mã lỗi Zalo, `null` khi không lỗi |
+| `error_message` | Thông báo lỗi gốc |
+| `error_reason` | Diễn giải tiếng Việt, dùng trực tiếp để hiển thị |
+| `scheduled_at` | Thời điểm hẹn gửi, `null` nếu gửi ngay |
+| `sent_at` · `delivered_at` · `failed_at` | Mốc thời gian tương ứng, ISO 8601 |
+| `created_at` | Thời điểm tiếp nhận request |
+
+Tin không thuộc workspace của API key trả `404`.
+
+## Liệt kê và lọc
+
+`GET /api/v1/messages` · scope `messages:read`
+
+Trả về tin của workspace, sắp xếp mới nhất trước.
+
+| Query | Mô tả |
+|---|---|
+| `tracking_id` | Khớp chính xác mã đối soát của bạn |
+| `phone` | Khớp chính xác số đã lưu. Không tìm được tin RSA |
+| `status` | `queued` · `sending` · `sent` · `delivered` · `failed` |
+| `from` | Tạo từ thời điểm này, ISO 8601 |
+| `to` | Tạo đến thời điểm này, ISO 8601 |
+| `limit` | Mặc định 50, tối đa 200 |
+| `offset` | Mặc định 0 |
+
+```bash
+# Tra theo mã đối soát của bạn
+curl -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  "https://business.adflex.vn/api/v1/messages?tracking_id=otp-login-8842"
+
+# Tin thất bại trong khoảng thời gian
+curl -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  "https://business.adflex.vn/api/v1/messages?status=failed&from=2026-08-19T00:00:00Z&limit=200"
+```
+
+```json
+{
+  "messages": [ { "msg_id": "m_abc", "tracking_id": "otp-login-8842", "status": "delivered" } ],
+  "limit": 50,
+  "offset": 0,
+  "count": 1
+}
+```
+
+`count` là số phần tử trong trang hiện tại, không phải tổng số tin khớp điều kiện.
+Duyệt hết bằng cách tăng `offset` cho tới khi `count` nhỏ hơn `limit`.
+
+```php Duyệt toàn bộ kết quả
+$offset = 0;
+$limit  = 200;
+do {
+    $r = getJson("/api/v1/messages?status=failed&limit=$limit&offset=$offset");
+    foreach ($r['messages'] as $m) {
+        handleFailed($m);
+    }
+    $offset += $limit;
+} while ($r['count'] === $limit);
+```
+
+<Note>
+Tin gửi qua đường RSA không lưu số điện thoại, nên `?phone=…` không tìm được. Đối
+soát tin RSA bằng `tracking_id`.
+</Note>
+
+## Huỷ tin
+
+`POST /api/v1/messages/{msg_id}/cancel` · scope `messages:send`
+
+Huỷ tin còn ở trạng thái `queued`, thường là tin đã đặt lịch.
+
+```bash
+curl -X POST -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  https://business.adflex.vn/api/v1/messages/m_abc/cancel
+```
+
+```json
+{ "cancelled": true, "msg_id": "m_abc" }
+```
+
+| Mã | Trường hợp |
+|---|---|
+| `200` | Đã huỷ |
+| `404` | Tin không tồn tại hoặc không thuộc workspace |
+| `409` | Tin không còn ở trạng thái `queued`, hoặc đang được gửi |
+
+<Warning>
+Huỷ thành công sẽ xoá bản ghi tin. Tra cứu `msg_id` đó sau khi huỷ trả `404`. Lưu
+lại thông tin cần thiết trước khi huỷ.
+</Warning>

@@ -1,0 +1,96 @@
+---
+title: "Ví dụ đầu-cuối"
+description: "Gửi OTP đăng nhập, từ lúc người dùng bấm nút tới lúc đối soát xong"
+---
+
+Năm bước dưới đây là bộ khung tối thiểu cho một tích hợp chạy được thật.
+
+<Steps>
+  <Step title="Lấy tham số template (làm một lần, cache lại)">
+```bash
+curl -s -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  "https://business.adflex.vn/api/v1/templates?status=ENABLE"
+```
+
+```json
+{"templates":[{"template_id":"123456","name":"Mã xác thực OTP","status":"ENABLE",
+  "params":[{"name":"otp","required":true,"max_length":10},
+            {"name":"time","required":true,"max_length":30}]}],"count":1}
+```
+
+Template cần đúng hai tham số: `otp` (≤10) và `time` (≤30).
+  </Step>
+
+  <Step title="Người dùng bấm Gửi mã OTP">
+```php
+$phone = normalizeVnPhone($request->input('phone'));
+if ($phone === null) {
+    return response()->json(['error' => 'Số điện thoại không hợp lệ'], 422);
+}
+
+$otp        = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+$trackingId = 'otp-' . $userId . '-' . time();
+
+Cache::put("otp:$userId", $otp, now()->addMinutes(5));
+```
+  </Step>
+
+  <Step title="Gửi">
+```php
+$res = sendZns([
+    'template_id'   => '123456',
+    'phone'         => $phone,
+    'template_data' => ['otp' => $otp, 'time' => '5 phut'],
+    'tracking_id'   => $trackingId,
+]);
+
+// LƯU NGAY, trước khi trả kết quả cho người dùng
+OutboundMessage::create([
+    'tracking_id' => $trackingId,
+    'msg_id'      => $res['msg_id'],
+    'user_id'     => $userId,
+    'status'      => $res['status'],   // 'queued'
+]);
+```
+
+<Note>
+`202` mới chỉ là "đã tiếp nhận". Thông báo phù hợp cho người dùng là
+**"Đang gửi mã tới Zalo của bạn"**, không phải "Đã gửi thành công".
+</Note>
+  </Step>
+
+  <Step title="Webhook báo đã giao (vài giây sau)">
+```json
+POST https://your-app.vn/webhooks/adflex-dlr
+X-Zgateway-Signature: 9f2b1c...
+
+{"message_id":"m_a1b2c3d4e5f6g7h8","client_req_id":"otp-1042-1787049294",
+ "from":"1234567890123456789","to":"84912345678","status":"SUCCESS",
+ "delivered_at":"2026-08-19T02:35:02.104Z","tracking_id":"9f8e7d6c5b4a39281706"}
+```
+
+```php
+// Sau khi xác thực chữ ký:
+OutboundMessage::where('tracking_id', $dlr['client_req_id'])
+    ->update(['status' => 'delivered', 'delivered_at' => $dlr['delivered_at']]);
+```
+  </Step>
+
+  <Step title="Đối soát tin không có webhook (chạy mỗi 5 phút)">
+```php
+// Tin đã gửi quá 3 phút mà chưa có kết quả → hỏi thẳng
+$stuck = OutboundMessage::where('status', 'queued')
+    ->where('created_at', '<', now()->subMinutes(3))->get();
+
+foreach ($stuck as $m) {
+    $r = getJson("/api/v1/messages/{$m->msg_id}");
+    $m->update(['status' => $r['status'], 'error_reason' => $r['error_reason']]);
+
+    if ($r['status'] === 'failed') {
+        // Webhook KHÔNG bắn cho tin hỏng — chỉ nhánh này phát hiện được
+        notifyUserOtpFailed($m->user_id, $r['error_reason']);
+    }
+}
+```
+  </Step>
+</Steps>

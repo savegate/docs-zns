@@ -1,0 +1,43 @@
+---
+title: "Giới hạn và checklist"
+description: "Con số cần biết khi thiết kế, và việc phải làm trước khi chạy thật"
+---
+
+## Giới hạn
+
+| Hạng mục | Giá trị | Ghi chú |
+|---|---|---|
+| Người nhận mỗi request | 500 | `/batch` và `/rsa` |
+| Tốc độ gửi | 8 tin/giây | Hàng đợi chung; gửi dồn không mất tin, chỉ xếp hàng |
+| Tự thử lại khi gửi lỗi | 4 lần | Backoff luỹ thừa, tự động |
+| Đặt lịch xa nhất | 60 ngày | Quá khứ = gửi ngay |
+| Liệt kê mỗi trang | 200 | Mặc định 50 |
+| Webhook: thời gian trả lời | 30 giây | Quá hạn coi như thất bại |
+| Webhook: số lần thử lại | 5 lần | `1s → 5s → 30s → 2m → 10m` |
+| Ciphertext RSA mỗi trường | 684 ký tự | Cố định, bất kể nội dung gốc |
+
+## Checklist trước khi chạy thật
+
+<AccordionGroup>
+  <Accordion title="Bảo mật">
+    - API key ở biến môi trường phía máy chủ, không trong mã nguồn, không trong ứng dụng client
+    - Webhook đã xác thực chữ ký trên **body thô** và trả `2xx` trong 30 giây
+  </Accordion>
+
+  <Accordion title="Dữ liệu đầu vào">
+    - Chuẩn hoá và kiểm tra số điện thoại phía bạn trước khi gọi API
+    - Kiểm tra `template_data` đủ tham số bắt buộc và không vượt độ dài
+    - Luôn truyền `tracking_id` theo nghiệp vụ và lưu lại cùng `msg_id`
+  </Accordion>
+
+  <Accordion title="Xử lý kết quả">
+    - Đọc mảng `results` của `/batch` và `/rsa`, không chỉ đọc mã HTTP
+    - Có nhánh xử lý riêng cho tin `failed` — webhook không báo cho tin hỏng
+    - Retry có kiểm tra `tracking_id` trước để không gửi trùng
+  </Accordion>
+
+  <Accordion title="Vận hành">
+    - Theo dõi số dư ví và cảnh báo sớm khi sắp hết
+    - Nếu dùng RSA trên Node.js hoặc Go: đã kiểm chứng bằng một tin thật
+  </Accordion>
+</AccordionGroup>

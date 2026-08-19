@@ -1,0 +1,48 @@
+---
+title: "Đặt lịch và huỷ"
+description: "Gửi vào thời điểm định trước, và huỷ khi chưa gửi"
+---
+
+## Đặt lịch
+
+Thêm `send_at` dạng ISO 8601 có múi giờ. Xa nhất **60 ngày**; thời điểm quá khứ
+được hiểu là gửi ngay.
+
+```json
+{
+  "template_id": "123456",
+  "phone": "84912345678",
+  "template_data": { "otp": "246813", "time": "5 phut" },
+  "send_at": "2026-09-01T09:00:00+07:00"
+}
+```
+
+```json Kết quả
+{
+  "msg_id": "m_abc",
+  "tracking_id": "m_abc",
+  "status": "queued",
+  "scheduled_at": "2026-09-01T02:00:00.000Z"
+}
+```
+
+`scheduled_at` trả về ở UTC. Tin nằm ở trạng thái `queued` tới giờ gửi.
+
+## Huỷ
+
+```bash
+curl -X POST -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  https://business.adflex.vn/api/v1/messages/m_abc/cancel
+```
+
+```json
+{ "cancelled": true, "msg_id": "m_abc" }
+```
+
+<Warning>
+**Huỷ thành công thì bản ghi bị xoá hẳn.** Tra lại `msg_id` đó sẽ ra `404`.
+Nếu hệ thống của bạn cần lưu vết, hãy ghi lại trước khi huỷ.
+</Warning>
+
+Chỉ huỷ được tin còn ở trạng thái `queued`. Trạng thái khác trả `409`; tin đang
+được gửi cũng trả `409`.

@@ -1,0 +1,87 @@
+---
+title: "Trạng thái và mã lỗi"
+description: "Vòng đời tin, mã lỗi HTTP và mã lỗi Zalo"
+---
+
+## Vòng đời tin
+
+```
+queued → sending → sent → delivered
+                     ↓
+                   failed
+```
+
+| Trạng thái | Ý nghĩa |
+|---|---|
+| `queued` | Đã tiếp nhận, chờ gửi. Tin đặt lịch ở trạng thái này tới giờ gửi. Huỷ được |
+| `sending` | Đang gọi API Zalo |
+| `sent` | Zalo đã tiếp nhận. Chưa xác nhận giao tới người nhận |
+| `delivered` | Zalo xác nhận đã giao |
+| `failed` | Thất bại. Xem `error_code` và `error_reason` |
+
+Chuyển trạng thái `sent` → `delivered` dựa trên webhook của Zalo. AdFlex đối soát bổ
+sung mỗi 5 phút cho các tin `sent` trong 24 giờ gần nhất.
+
+## Mã lỗi HTTP
+
+| Mã | Nguyên nhân | Xử lý |
+|---|---|---|
+| `400` | Body sai, thiếu trường, `tracking_id` không hợp lệ, vượt 500 người nhận, hoặc thiếu số dư (`/send`) | Sửa request |
+| `401` | Thiếu key, key sai hoặc đã thu hồi | Kiểm tra cấu hình |
+| `402` | Thiếu số dư cho toàn lô (`/batch`, `/rsa`) | Nạp ví |
+| `403` | Thiếu scope hoặc workspace tạm dừng | Liên hệ AdFlex |
+| `404` | Template không thuộc workspace, hoặc `msg_id` không tồn tại | Kiểm tra tham số |
+| `409` | Tin cần huỷ không còn ở trạng thái `queued` | Không xử lý được |
+| `5xx` | Lỗi hệ thống | Thử lại có kiểm soát |
+
+## Thử lại
+
+<Warning>
+AdFlex không chống trùng. Gửi lại cùng `tracking_id` tạo tin mới và tính phí lần nữa.
+
+Khi timeout mạng, request có thể đã được tiếp nhận. Tra cứu theo `tracking_id` trước
+khi gửi lại.
+</Warning>
+
+```php
+function sendZnsSafely(array $payload, int $maxAttempts = 3): array {
+    $trackingId = $payload['tracking_id'];
+
+    for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+        try {
+            return sendZns($payload);
+        } catch (NetworkOrServerError $e) {
+            $existing = findByTrackingId($trackingId);
+            if ($existing !== null) return $existing;
+
+            if ($attempt === $maxAttempts) throw $e;
+            usleep((int)(pow(2, $attempt) * 500_000));
+        }
+    }
+}
+
+function findByTrackingId(string $trackingId): ?array {
+    $r = getJson("/api/v1/messages?tracking_id=" . urlencode($trackingId));
+    return $r['messages'][0] ?? null;
+}
+```
+
+## Mã lỗi Zalo
+
+Trả về trong trường `error_code` của tin. Trường `error_reason` chứa diễn giải tiếng
+Việt, dùng được trực tiếp để hiển thị.
+
+| Mã | Ý nghĩa | Bên xử lý | Gửi lại |
+|---|---|---|---|
+| `-137` | Trừ ví ZBS thất bại | Chủ OA | Sau khi nạp ví |
+| `-115` | Hết số dư ví ZBS | Chủ OA | Sau khi nạp ví |
+| `-118` | Tài khoản Zalo không tồn tại hoặc vô hiệu | Đối tác | Không |
+| `-108` | Số điện thoại không hợp lệ | Đối tác | Không |
+| `-1122` | Thiếu tham số bắt buộc | Đối tác | Sau khi sửa |
+| `-1121` | Tham số vượt độ dài tối đa | Đối tác | Sau khi sửa |
+| `-117` | OA chưa có quyền dùng template | AdFlex | Không |
+| `-127` | Dev mode chỉ gửi tới admin OA | AdFlex | Không |
+| `-110` | Zalo phiên bản cũ | — | Không |
+
+AdFlex tự thử lại 4 lần với lỗi tạm thời trước khi đánh dấu `failed`. Tin ở trạng
+thái `failed` đã hết khả năng xử lý tự động.

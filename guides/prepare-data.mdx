@@ -1,0 +1,125 @@
+---
+title: "Chuẩn hoá dữ liệu"
+description: "Yêu cầu đối với số điện thoại, template_data và tracking_id"
+---
+
+## Số điện thoại
+
+AdFlex tiếp nhận nhiều định dạng và quy về `84xxxxxxxxx`:
+
+| Đầu vào | Kết quả |
+|---|---|
+| `0912345678` | `84912345678` |
+| `+84 912 345 678` | `84912345678` |
+| `912345678` | `84912345678` |
+
+<Warning>
+AdFlex không kiểm tra tính hợp lệ của số điện thoại. Số sai định dạng được đưa vào
+hàng đợi và thất bại tại Zalo với mã `-108`, đã tính phí. Kiểm tra định dạng phía hệ
+thống của bạn trước khi gọi API.
+</Warning>
+
+<CodeGroup>
+```php PHP
+function normalizeVnPhone(string $raw): ?string {
+    $d = preg_replace('/\D+/', '', $raw);
+    $len = strlen($d);
+    if ($len === 11 && str_starts_with($d, '84')) return $d;
+    if ($len === 10 && $d[0] === '0')             return '84' . substr($d, 1);
+    if ($len === 9)                               return '84' . $d;
+    return null;
+}
+```
+
+```javascript Node.js
+function normalizeVnPhone(raw) {
+  const d = String(raw).replace(/\D+/g, '');
+  if (d.length === 11 && d.startsWith('84')) return d;
+  if (d.length === 10 && d.startsWith('0'))  return '84' + d.slice(1);
+  if (d.length === 9)                        return '84' + d;
+  return null;
+}
+```
+
+```java Java
+static String normalizeVnPhone(String raw) {
+    String d = raw.replaceAll("\\D+", "");
+    if (d.length() == 11 && d.startsWith("84")) return d;
+    if (d.length() == 10 && d.startsWith("0"))  return "84" + d.substring(1);
+    if (d.length() == 9)                         return "84" + d;
+    return null;
+}
+```
+
+```python Python
+import re
+
+def normalize_vn_phone(raw: str) -> str | None:
+    d = re.sub(r"\D+", "", raw)
+    if len(d) == 11 and d.startswith("84"): return d
+    if len(d) == 10 and d.startswith("0"):  return "84" + d[1:]
+    if len(d) == 9:                          return "84" + d
+    return None
+```
+</CodeGroup>
+
+Số điện thoại phải đã liên kết với một tài khoản Zalo. Số hợp lệ về định dạng nhưng
+chưa có tài khoản Zalo trả mã `-118` và đã tính phí.
+
+Với [gửi RSA](/guides/rsa), chuẩn hoá phải thực hiện trước khi mã hoá.
+
+## template_data
+
+Khoá là tên tham số lấy từ `GET /api/v1/templates`. Giá trị luôn là chuỗi.
+
+| Yêu cầu | Mã lỗi nếu vi phạm |
+|---|---|
+| Đủ mọi tham số `required` | `-1122` |
+| Không vượt `max_length` | `-1121` |
+| Không rỗng với tham số bắt buộc | `-1122` |
+
+Số và ngày tháng cần được định dạng thành chuỗi trước khi gửi.
+
+```php Kiểm tra trước khi gửi
+function buildTemplateData(array $params, array $values): array {
+    $out = [];
+    foreach ($params as $p) {
+        $v = trim((string)($values[$p['name']] ?? ''));
+        if ($v === '') {
+            if ($p['required']) {
+                throw new RuntimeException("Thiếu tham số bắt buộc: {$p['name']}");
+            }
+            continue;
+        }
+        if (mb_strlen($v) > $p['max_length']) {
+            throw new RuntimeException("Tham số {$p['name']} vượt {$p['max_length']} ký tự");
+        }
+        $out[$p['name']] = $v;
+    }
+    return $out;
+}
+```
+
+## tracking_id
+
+Mã đối soát do hệ thống của bạn định nghĩa, dùng để liên kết kết quả gửi với dữ liệu
+nghiệp vụ. Không truyền thì AdFlex dùng `msg_id` làm giá trị mặc định.
+
+**Ràng buộc:**
+
+- Tối đa **48 ký tự**
+- Chỉ chấp nhận chữ, số, dấu chấm, gạch ngang, gạch dưới
+
+AdFlex kiểm tra và trả lỗi `400` nếu vi phạm. Trong `/batch` và `/rsa`, lỗi được trả
+theo từng phần tử trong `results`; các phần tử hợp lệ vẫn được gửi.
+
+```json Ví dụ lỗi
+{
+  "error": {
+    "code": 400,
+    "message": "tracking_id tối đa 48 ký tự (đang 60)"
+  }
+}
+```
+
+Giá trị hợp lệ: `otp-login-8842`, `order_2026_08_19`, `INV.2026.1123`.
