@@ -1,0 +1,90 @@
+---
+title: "Hạn mức gửi tin"
+description: "Hai trần giới hạn số tin gửi được, và cách đối chiếu trước khi gửi lô"
+---
+
+Có **hai trần** độc lập. Vượt trần nào cũng dừng việc gửi, nhưng cách xử lý khác nhau.
+
+| | Hạn mức tài khoản | Hạn mức ngày của OA |
+|---|---|---|
+| Do ai đặt | AdFlex | Zalo |
+| Phạm vi | Toàn workspace | Từng Official Account |
+| Chu kỳ | Không reset theo ngày | Reset nửa đêm giờ Việt Nam |
+| Khi vượt | API trả `400` hoặc `402` | Zalo từ chối tin |
+| Cách xử lý | Liên hệ AdFlex | Chờ sang ngày, hoặc nâng chất lượng gửi |
+| Tra cứu | Liên hệ AdFlex | `GET /api/v1/quota` |
+
+<Warning>
+Hạn mức ngày của OA do Zalo **tự điều chỉnh theo chất lượng gửi**. Tỉ lệ tin bị từ
+chối cao hoặc người nhận chặn nhiều sẽ làm hạn mức giảm. Ngược lại, gửi đều và ít
+lỗi thì hạn mức tăng dần.
+</Warning>
+
+## Tra hạn mức ngày
+
+`GET /api/v1/quota` · scope `messages:read`
+
+```bash
+curl -H "Authorization: Bearer $ADFLEX_API_KEY" \
+  https://business.adflex.vn/api/v1/quota
+```
+
+```json
+{
+  "quotas": [
+    {
+      "oa_id": "1234567890123456789",
+      "oa_name": "AdFlex",
+      "daily_quota": 20000,
+      "remaining": 19996,
+      "used": 4,
+      "reset_at": "2026-08-19T17:00:00.000Z",
+      "error": null
+    }
+  ],
+  "count": 1
+}
+```
+
+| Trường | Mô tả |
+|---|---|
+| `daily_quota` | Số tin OA được gửi trong ngày |
+| `remaining` | Số tin còn lại |
+| `used` | Đã dùng trong ngày |
+| `reset_at` | Thời điểm reset, ISO 8601. Luôn là nửa đêm giờ Việt Nam |
+| `error` | Lý do không lấy được hạn mức của riêng OA này |
+
+Truyền `?oa_id=…` để lọc một OA. Không truyền thì trả về mọi OA của workspace.
+
+<Note>
+Một OA lỗi không làm hỏng cả phản hồi. Trường `error` xuất hiện ở đúng OA đó, các OA
+còn lại vẫn có số dùng được.
+</Note>
+
+## Đối chiếu trước khi gửi lô
+
+Gửi lô lớn nên tra hạn mức trước và chia lô cho vừa phần còn lại. Không tra thì lô
+có thể đâm vào trần giữa chừng: những tin đầu đi được, phần sau trả lỗi.
+
+```php
+function guiLoTheoHanMuc(string $oaId, array $nguoiNhan, string $templateId): void {
+    $q = getJson("/api/v1/quota?oa_id=" . urlencode($oaId));
+    $conLai = $q['quotas'][0]['remaining'] ?? 0;
+
+    if ($conLai < count($nguoiNhan)) {
+        // Gửi phần vừa hạn mức, phần còn lại để sang ngày
+        $nguoiNhan = array_slice($nguoiNhan, 0, $conLai);
+        logInfo("Hạn mức còn $conLai, hoãn phần dư sang ngày mai");
+    }
+
+    foreach (array_chunk($nguoiNhan, 200) as $lo) {
+        postJson('/api/v1/messages/batch', [
+            'template_id' => $templateId,
+            'recipients'  => $lo,
+        ]);
+    }
+}
+```
+
+Hạn mức reset nửa đêm giờ Việt Nam, nên tác vụ gửi hàng loạt đặt vào đầu ngày sẽ có
+nhiều dư địa nhất.

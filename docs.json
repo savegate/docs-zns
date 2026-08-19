@@ -29,6 +29,7 @@
           {
             "group": "Template",
             "pages": [
+              "guides/register-template",
               "guides/templates"
             ]
           },
@@ -38,7 +39,8 @@
               "guides/prepare-data",
               "guides/send",
               "guides/schedule",
-              "guides/rsa"
+              "guides/rsa",
+              "guides/quota"
             ]
           },
           {
@@ -53,7 +55,8 @@
             "group": "Tham chiếu",
             "pages": [
               "guides/end-to-end",
-              "guides/limits"
+              "guides/limits",
+              "guides/error-codes"
             ]
           }
         ]

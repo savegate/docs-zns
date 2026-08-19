@@ -1,0 +1,143 @@
+---
+title: "Phụ lục — toàn bộ mã lỗi Zalo"
+description: "Tra cứu đầy đủ mã trả về trong trường error_code"
+---
+
+Trang này liệt kê **mọi mã lỗi Zalo** hệ thống nhận diện được. Mã hay gặp trong
+thực tế và cách xử lý xem [Trạng thái và mã lỗi](/guides/errors).
+
+Trường `error_reason` của tin đã chứa sẵn diễn giải tiếng Việt tương ứng, dùng
+trực tiếp để hiển thị cho bộ phận vận hành.
+
+## Dữ liệu gửi lên
+
+Bên xử lý: **Đối tác**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-107` | ID tin không hợp lệ | Không |
+| `-108` | SĐT không hợp lệ | Không |
+| `-111` | Template không có dữ liệu | Không |
+| `-112` | Type tham số chưa định nghĩa | Không |
+| `-116` | Nội dung không hợp lệ | Không |
+| `-121` | Body rỗng | Không |
+| `-122` | Body không phải JSON hợp lệ | Không |
+| `-130` | Vượt giới hạn ký tự | Không |
+| `-132` | Tham số không hợp lệ | Không |
+| `-153` | Dữ liệu vi phạm quy định | Không |
+| `-158` | File upload quá lớn | Không |
+| `-159` | Format file không hỗ trợ | Không |
+| `-161` | sending_mode sai giá trị | Không |
+| `-162` | Loại template không gửi được trên endpoint này | Không |
+| `-1121` | Tham số vượt độ dài tối đa | Không |
+| `-1122` | Thiếu tham số bắt buộc | Không |
+| `-1123` | Không tạo được QR code, kiểm tra lại tham số | Không |
+| `-1124` | Format tham số sai | Không |
+
+## Template
+
+Bên xử lý: **Đối tác**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-109` | Template ID không hợp lệ | Không |
+| `-113` | Button không hợp lệ | Không |
+| `-131` | Template chưa duyệt | Không |
+| `-146` | Template bị disable do chất lượng thấp | Không |
+| `-151` | Template không hỗ trợ mã hoá đầu-cuối | Không |
+| `-249` | Template không hỗ trợ gửi qua UID (template cũ) | Không |
+| `-1091` | Template không ở trạng thái REJECT — không sửa được | Không |
+| `-1131` | Đường dẫn button sai định dạng | Không |
+| `-1132` | Template phải có ít nhất 1 button | Không |
+
+## Người nhận
+
+Bên xử lý: **Ngoài tầm kiểm soát**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-110` | User dùng Zalo phiên bản cũ | Không |
+| `-114` | Tài khoản user không hoạt động | Không |
+| `-118` | Tài khoản Zalo không tồn tại / vô hiệu | Không |
+| `-139` | User từ chối nhận loại tin này | Không |
+| `-140` | User không đủ điều kiện nhận | Không |
+| `-141` | User từ chối nhận tin SĐT từ OA | Không |
+
+## Hạn mức và ví
+
+Bên xử lý: **AdFlex**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-115` | Hết số dư ví ZBS Account | Không |
+| `-126` | Hết quota dev mode | Không |
+| `-137` | Trừ ví ZBS thất bại | Có |
+| `-144` | Vượt quota ngày | Không |
+| `-147` | Template vượt quota ngày | Không |
+| `-160` | Vượt quota tạo/sửa template ngày | Không |
+| `-1441` | Vượt quota promotion tháng | Không |
+| `-1471` | Vượt quota promotion cho user này tháng này | Không |
+| `-1472` | Vượt quota promotion cho user này hôm nay | Không |
+
+## Quyền
+
+Bên xử lý: **AdFlex**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-117` | OA/App chưa có quyền template này | Không |
+| `-120` | OA chưa được cấp quyền (nâng gói) | Không |
+| `-127` | Dev mode chỉ gửi tới admin OA | Không |
+| `-135` | OA chưa verify hoặc gói free | Không |
+| `-138` | App chưa có quyền feature này | Không |
+| `-145` | OA không được gửi loại tin này | Không |
+| `-224` | OA cần nâng cấp gói | Không |
+| `-1202` | OA không có quyền dùng media resource | Không |
+| `-1351` | OA bị block do vi phạm | Không |
+| `-1381` | OA chưa cấp quyền truy cập tài khoản ZBS | Không |
+| `-14084` | OA đã uỷ quyền đủ số app cho phép — thu hồi bớt app cũ trong Quản lý ứng dụng của OA, hoặc nâng gói | Không |
+
+## Cấu hình
+
+Bên xử lý: **AdFlex**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-101` | Ứng dụng không hợp lệ | Không |
+| `-103` | Ứng dụng chưa kích hoạt | Không |
+| `-104` | Secret key không hợp lệ | Không |
+| `-106` | Phương thức HTTP không được hỗ trợ | Không |
+| `-125` | OA ID không hợp lệ | Không |
+| `-133` | Cấm gửi giờ đêm (22:00-06:00) | Không |
+| `-136` | Cần liên kết ZBS Account | Không |
+| `-142` | OA chưa tạo RSA key — vào Console → Official Account để tạo | Không |
+| `-143` | RSA key đã tồn tại, dùng key hiện có thay vì tạo mới | Không |
+
+## Xác thực
+
+Bên xử lý: **AdFlex**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-124` | Token hết hạn / không hợp lệ | Có |
+| `-1241` | appsecret_proof không hợp lệ | Không |
+
+## Journey
+
+Bên xử lý: **Đối tác**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-148` | Thiếu journey token | Không |
+| `-149` | Journey token sai | Không |
+| `-150` | Journey token hết hạn | Không |
+| `-1491` | Loại journey token không khớp với template | Không |
+
+## Hệ thống
+
+Bên xử lý: **Thử lại sau**
+
+| Mã | Ý nghĩa | Thử lại được |
+|---|---|---|
+| `-100` | Lỗi không xác định, thử lại sau | Có |
+| `-152` | Lấy E2EE key fail | Có |
