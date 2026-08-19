@@ -3,8 +3,11 @@ title: "Template và OA"
 description: "Lấy danh sách template, đọc tham số, kiểm tra trạng thái duyệt"
 ---
 
-Template do AdFlex đăng ký với Zalo và Zalo duyệt. Hệ thống của bạn không tạo được
-template qua API; endpoint dưới đây dùng để **đọc** thông tin cần cho việc gửi tin.
+Bạn tự đăng ký template với Zalo và chờ Zalo duyệt. AdFlex đồng bộ thông tin
+template về hệ thống để bạn tra cứu và dùng khi gửi tin.
+
+API này chỉ **đọc**. Không tạo, sửa hay xoá template qua đây — mọi thay đổi thực
+hiện phía Zalo, sau đó đồng bộ lại.
 
 ## Lấy danh sách template
 
@@ -57,14 +60,14 @@ curl -H "Authorization: Bearer $ADFLEX_API_KEY" \
 | `params` | Danh sách tham số, xem bên dưới |
 
 <Note>
-Endpoint không trả về giá tin. Chi phí xem tại [Console → Template](https://business.adflex.vn/console/templates).
+Endpoint không trả về giá tin. Chi phí xem tại Console → Template <a href="https://business.adflex.vn/console/templates" target="_blank" rel="noopener"><Icon icon="arrow-up-right-from-square" size={13} /></a>.
 </Note>
 
 ### Trạng thái template
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING_REVIEW: AdFlex đăng ký template
+    [*] --> PENDING_REVIEW: Bạn đăng ký template với Zalo
     PENDING_REVIEW --> ENABLE: Zalo duyệt
     PENDING_REVIEW --> REJECT: Zalo từ chối
     REJECT --> PENDING_REVIEW: Chỉnh sửa và gửi lại
@@ -88,9 +91,11 @@ Gửi tin bằng template không ở trạng thái `ENABLE` trả lỗi `400` v�
 `Template chưa được duyệt (status=…)`.
 
 <Warning>
-Trạng thái template do Zalo quyết định và có thể thay đổi bất kỳ lúc nào. Nếu hệ
-thống của bạn cache `template_id`, hãy đồng bộ lại định kỳ thay vì cấu hình cố định
-một lần.
+Nguồn sự thật về template là phía Zalo. Trạng thái có thể thay đổi bất kỳ lúc nào và
+AdFlex chỉ phản ánh lại bản đã đồng bộ gần nhất.
+
+Vừa đăng ký template mới hoặc vừa được Zalo duyệt mà chưa thấy ở đây, bấm **Đồng bộ**
+trong Console → Template <a href="https://business.adflex.vn/console/templates" target="_blank" rel="noopener"><Icon icon="arrow-up-right-from-square" size={13} /></a> để lấy về ngay.
 </Warning>
 
 ### Tham số template
